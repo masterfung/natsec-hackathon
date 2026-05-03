@@ -11,6 +11,7 @@ If you find a security issue in this code, please open a GitHub issue marked `se
 - Never commit `.env`. The `.gitignore` excludes it.
 - Foundry tokens should be created with a 3-day TTL for the hackathon and revoked afterward.
 - Mighty Citadel API keys must be kept out of client-side JavaScript — all Citadel calls go through the Go gateway, which holds the key server-side.
+- Live Cartesia voice cloning is disabled by default. Enable `MM_ENABLE_LIVE_CLONE=true` only for controlled demos using your own consented voice sample.
 - The server Ed25519 key and voiceprint salt are stored on disk in `.secrets/` for the prototype. Production should move them to KMS/HSM-backed storage.
 - Identity envelopes contain an Ed25519 private key and are returned once at enrollment. Losing one means revoke and re-enroll.
 - The WebSocket OOB prototype checks that the claimed official is enrolled and active, then requires the phone client to sign a server challenge with the identity envelope's Ed25519 private key before prompts are delivered.

@@ -185,6 +185,7 @@ func main() {
 	mux.HandleFunc("GET /demo/fixtures", s.handleDemoFixtures)
 	mux.HandleFunc("GET /demo/clone-eval", s.handleDemoCloneEval)
 	mux.HandleFunc("GET /demo/fixture-audio", s.handleDemoFixtureAudio)
+	mux.HandleFunc("POST /api/voice/clone", s.handleVoiceClone)
 
 	// WebAuthn passkey ceremonies — second factor whose private key never
 	// leaves the user's authenticator. Audio-bound on assertion.

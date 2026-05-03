@@ -17,6 +17,7 @@ export default defineConfig({
       '/registry': { target: BACKEND, changeOrigin: true },
       '/sign': { target: BACKEND, changeOrigin: true },
       '/verify': { target: BACKEND, changeOrigin: true },
+      '/webauthn': { target: BACKEND, changeOrigin: true },
       '/ws': { target: BACKEND, changeOrigin: true, ws: true },
     },
   },

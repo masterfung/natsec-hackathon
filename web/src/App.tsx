@@ -138,6 +138,47 @@ function removeStoredCredential(id: string) {
   window.localStorage.setItem(LOCAL_CREDENTIALS_KEY, JSON.stringify(next))
 }
 
+// WebAuthn helpers — the server returns CredentialCreationOptions with
+// base64url-encoded binary fields; the browser API needs ArrayBuffers for
+// challenge / user.id / excludeCredentials[].id, and we have to encode the
+// response binary fields back to base64url for the finish call.
+function b64urlDecode(str: string): ArrayBuffer {
+  const padded = str.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((str.length + 3) % 4)
+  const binary = atob(padded)
+  const buf = new ArrayBuffer(binary.length)
+  const view = new Uint8Array(buf)
+  for (let i = 0; i < binary.length; i++) view[i] = binary.charCodeAt(i)
+  return buf
+}
+
+function b64urlEncode(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf)
+  let binary = ''
+  for (const b of bytes) binary += String.fromCharCode(b)
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+type WebAuthnPublicKeyOptions = {
+  challenge: string
+  user: { id: string; name: string; displayName: string }
+  rp: { id?: string; name: string }
+  pubKeyCredParams: Array<{ type: string; alg: number }>
+  timeout?: number
+  excludeCredentials?: Array<{ type: string; id: string; transports?: string[] }>
+  authenticatorSelection?: Record<string, unknown>
+  attestation?: string
+}
+
+function decodeWebAuthnCreationOptions(input: { publicKey?: WebAuthnPublicKeyOptions } | WebAuthnPublicKeyOptions) {
+  const pk = ('publicKey' in input && input.publicKey ? input.publicKey : input) as WebAuthnPublicKeyOptions
+  return {
+    ...pk,
+    challenge: b64urlDecode(pk.challenge),
+    user: { ...pk.user, id: b64urlDecode(pk.user.id) },
+    excludeCredentials: pk.excludeCredentials?.map((c) => ({ ...c, id: b64urlDecode(c.id) })),
+  } as PublicKeyCredentialCreationOptions
+}
+
 function flattenCredential(raw: unknown): IdentityEnvelope | null {
   if (!raw || typeof raw !== 'object') return null
   const r = raw as Record<string, unknown>
@@ -439,6 +480,7 @@ function ConsolePage() {
       <div className="grid gap-4 xl:grid-cols-[360px_1fr]">
         <div className="space-y-4">
           <DemoControls busy={demoBusy} error={demoError} official={activeOfficial} result={lastResult} onRun={runDemo} />
+          <LiveCloneLab />
           <CloneDefenseLab fixtures={fixtures} evalResult={cloneEval} />
           <PhonePanel id={activeOfficial?.id ?? DEMO_OFFICIAL_ID} />
           <section className="border border-zinc-800 bg-zinc-950 p-4">
@@ -540,6 +582,97 @@ function DecisionSummary({ event }: { event: AuthEvent }) {
   )
 }
 
+// LiveCloneLab takes a sample, hits Cartesia /voices/clone + /tts/bytes via
+// the backend, and offers the cloned WAV for download. Use the result on the
+// Verify page to demonstrate the layered defense rejecting a clone of your
+// own voice.
+function LiveCloneLab() {
+  const [sample, setSample] = useState<RecordedAudio | null>(null)
+  const [utterance, setUtterance] = useState('Authorize wire transfer of fifty thousand dollars to vendor account 4471. This is urgent.')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [cloneURL, setCloneURL] = useState<string | null>(null)
+  const [cloneFilename, setCloneFilename] = useState<string>('cartesia_clone.wav')
+
+  async function runClone() {
+    setBusy(true)
+    setError(null)
+    setCloneURL((prev) => {
+      if (prev) URL.revokeObjectURL(prev)
+      return null
+    })
+    if (!sample) {
+      setBusy(false)
+      setError('Record a voice sample first (>= 5 seconds of clean speech).')
+      return
+    }
+    try {
+      const form = new FormData()
+      form.set('audio', new File([sample.blob], sample.filename, { type: sample.blob.type || 'audio/wav' }))
+      form.set('utterance', utterance)
+      form.set('consent', 'own_voice')
+      const res = await fetch('/api/voice/clone', { method: 'POST', body: form })
+      const ct = res.headers.get('Content-Type') ?? ''
+      if (!res.ok || !ct.startsWith('audio/')) {
+        const body = await res.text()
+        throw new Error(`HTTP ${res.status}: ${body.slice(0, 240)}`)
+      }
+      const blob = await res.blob()
+      const dispo = res.headers.get('Content-Disposition') ?? ''
+      const filenameMatch = /filename="?([^";]+)"?/.exec(dispo)
+      if (filenameMatch?.[1]) setCloneFilename(filenameMatch[1])
+      setCloneURL(URL.createObjectURL(blob))
+    } catch (e: unknown) {
+      setError(String(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="border border-zinc-800 bg-zinc-950 p-4">
+      <SectionTitle title="Live Clone Lab — clone your own voice" right="cartesia" />
+      <div className="mb-3 text-xs text-zinc-400">
+        Record a sample of your voice, send it to Cartesia for cloning, download the resulting WAV, then upload that file on the Verify page (with a media.sig.json from Sign) to watch the layered defense reject it. Consent is implicit: this clones <em>your own</em> recorded voice.
+      </div>
+      <AudioRecorder label="Step 1 — record at least 5s of clean speech" onReady={setSample} />
+      <label className="mt-3 grid gap-1 text-xs text-zinc-400">
+        Step 2 — what should the clone say?
+        <textarea
+          value={utterance}
+          onChange={(e) => setUtterance(e.currentTarget.value)}
+          rows={2}
+          className="border border-zinc-800 bg-zinc-900 px-3 py-2 font-mono text-[12px] text-zinc-100 outline-none focus:border-emerald-700"
+        />
+      </label>
+      <button
+        type="button"
+        onClick={runClone}
+        disabled={busy || !sample}
+        className="mt-3 w-full border border-rose-700 bg-rose-950 px-3 py-3 text-sm font-semibold text-rose-100 hover:bg-rose-900 disabled:opacity-40"
+      >
+        {busy ? 'Cloning via Cartesia…' : 'Step 3 — clone with Cartesia'}
+      </button>
+      {error ? <div className="mt-3 border border-rose-800 bg-rose-950 p-2 text-xs text-rose-200">{error}</div> : null}
+      {cloneURL ? (
+        <ResultPanel tone="success" title="Clone ready">
+          <div className="space-y-2 text-sm text-emerald-200">
+            <div>Cloned audio downloaded — note how convincing it sounds. Take it to the Verify page along with the media.sig.json from Sign and watch the layered defense block it on deepfake or voiceprint.</div>
+            <audio controls src={cloneURL} className="w-full" />
+            <a
+              href={cloneURL}
+              download={cloneFilename}
+              className="inline-block border border-emerald-700 bg-emerald-950 px-3 py-2 text-sm text-emerald-100 hover:bg-emerald-900"
+            >
+              Download {cloneFilename}
+            </a>
+          </div>
+        </ResultPanel>
+      ) : null}
+    </section>
+  )
+}
+
 function CloneDefenseLab({ fixtures, evalResult }: { fixtures: DemoFixtures | null; evalResult: CloneEval | null }) {
   const counts = fixtures?.provider_counts ?? {}
   const summary = evalResult?.summary ?? {}
@@ -593,6 +726,9 @@ function EnrollPage() {
   const [recordedAudio, setRecordedAudio] = useState<RecordedAudio | null>(null)
   const [id, setId] = useState(() => uniqueEnrollmentID())
   const [idStatus, setIDStatus] = useState<string | null>(null)
+  const [passkeyBusy, setPasskeyBusy] = useState(false)
+  const [passkeyError, setPasskeyError] = useState<string | null>(null)
+  const [passkeyOK, setPasskeyOK] = useState<{ credential_id: string; passkey_count: number } | null>(null)
   const identity = result?.identity_envelope ?? null
   const secret = result?.enrollment_secret ?? null
   const credentialBundle = identity && secret
@@ -634,6 +770,8 @@ function EnrollPage() {
       const res = await fetch('/registry/enroll', { method: 'POST', body: form })
       const body: EnrollResult = await res.json()
       setResult(body)
+      setPasskeyError(null)
+      setPasskeyOK(null)
       if (body.identity_envelope && body.enrollment_secret) {
         saveStoredCredential({
           id: body.identity_envelope.id,
@@ -648,6 +786,59 @@ function EnrollPage() {
       }
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function addPasskey() {
+    if (!identity) return
+    if (typeof window === 'undefined' || !window.PublicKeyCredential) {
+      setPasskeyError('This browser does not support WebAuthn / passkeys.')
+      return
+    }
+    setPasskeyBusy(true)
+    setPasskeyError(null)
+    setPasskeyOK(null)
+    try {
+      const beginRes = await fetch('/webauthn/register/begin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ official_id: identity.id }),
+      })
+      const beginBody = await beginRes.json()
+      if (!beginRes.ok) throw new Error(beginBody.error ?? `register/begin HTTP ${beginRes.status}`)
+      const sessionID: string = beginBody.session_id
+      const options = decodeWebAuthnCreationOptions(beginBody.options)
+      const credential = await navigator.credentials.create({ publicKey: options })
+      if (!credential || !(credential instanceof PublicKeyCredential)) {
+        throw new Error('navigator.credentials.create returned no credential')
+      }
+      const attResp = credential.response as AuthenticatorAttestationResponse
+      const finishPayload = {
+        session_id: sessionID,
+        credential: {
+          id: credential.id,
+          rawId: b64urlEncode(credential.rawId),
+          type: credential.type,
+          response: {
+            attestationObject: b64urlEncode(attResp.attestationObject),
+            clientDataJSON: b64urlEncode(attResp.clientDataJSON),
+          },
+          clientExtensionResults: credential.getClientExtensionResults(),
+        },
+      }
+      const finishRes = await fetch('/webauthn/register/finish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(finishPayload),
+      })
+      const finishBody = await finishRes.json()
+      if (!finishRes.ok || !finishBody.ok) throw new Error(finishBody.error ?? `register/finish HTTP ${finishRes.status}`)
+      setPasskeyOK({ credential_id: finishBody.credential_id, passkey_count: finishBody.passkey_count })
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e)
+      setPasskeyError(msg)
+    } finally {
+      setPasskeyBusy(false)
     }
   }
 
@@ -693,6 +884,27 @@ function EnrollPage() {
               {secret.passkey_roadmap ? <div className="mt-1"><span className="text-rose-200">Passkey roadmap:</span> {secret.passkey_roadmap}</div> : null}
             </div>
           </div>
+          <div className="mt-3 border border-emerald-700 bg-emerald-950/40 p-3 text-xs text-emerald-100">
+            <div className="font-semibold uppercase tracking-wide text-emerald-200">Bind a passkey to this identity</div>
+            <div className="mt-1 text-emerald-200/80">
+              Save a WebAuthn passkey on this device. The passkey&rsquo;s private key lives in your platform authenticator (TouchID / Windows Hello / hardware key) and cannot be exported &mdash; even if the credential file above is leaked, the passkey factor remains.
+            </div>
+            <button
+              type="button"
+              onClick={addPasskey}
+              disabled={passkeyBusy || !identity}
+              className="mt-2 w-full border border-emerald-700 bg-emerald-950 px-3 py-2 text-sm font-semibold text-emerald-100 hover:bg-emerald-900 disabled:opacity-40"
+            >
+              {passkeyBusy ? 'Waiting for authenticator…' : 'Save passkey to this device'}
+            </button>
+            {passkeyError ? <div className="mt-2 border border-rose-800 bg-rose-950 p-2 text-rose-200">{passkeyError}</div> : null}
+            {passkeyOK ? (
+              <div className="mt-2 border border-emerald-800 bg-emerald-950 p-2 text-emerald-200">
+                Passkey saved. Credential id: <span className="font-mono break-all">{passkeyOK.credential_id}</span>
+                <div className="mt-1">Total passkeys for this identity: {passkeyOK.passkey_count}</div>
+              </div>
+            ) : null}
+          </div>
         </>
       ) : null}
       <JSONBlock value={result} />
@@ -713,9 +925,51 @@ function SignPage() {
   const [audioFile, setAudioFile] = useState<File | null>(null)
   const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null)
   const [verifyBusy, setVerifyBusy] = useState(false)
+  // Inline clone-of-recording state — lets the user clone the live recording
+  // without bouncing to the home-page Live Clone Lab.
+  const [cloneBusy, setCloneBusy] = useState(false)
+  const [cloneError, setCloneError] = useState<string | null>(null)
+  const [cloneURL, setCloneURL] = useState<string | null>(null)
+  const [cloneFilename, setCloneFilename] = useState<string>('cartesia_clone.wav')
+  const [cloneUtterance, setCloneUtterance] = useState('Authorize wire transfer of fifty thousand dollars to vendor account 4471. This is urgent.')
   const signature = result?.signature ?? null
   const signatureBlob = signature ? new Blob([JSON.stringify(signature)], { type: 'application/json' }) : null
   const activeCredential = storedCredentials.find((c) => c.id === selectedCredentialID) ?? null
+
+  async function cloneCurrentRecording() {
+    setCloneBusy(true)
+    setCloneError(null)
+    setCloneURL((prev) => {
+      if (prev) URL.revokeObjectURL(prev)
+      return null
+    })
+    if (!recordedAudio) {
+      setCloneBusy(false)
+      setCloneError('Record audio first (≥5 seconds of clean speech).')
+      return
+    }
+    try {
+      const form = new FormData()
+      form.set('audio', new File([recordedAudio.blob], recordedAudio.filename, { type: recordedAudio.blob.type || 'audio/wav' }))
+      form.set('utterance', cloneUtterance)
+      form.set('consent', 'own_voice')
+      const res = await fetch('/api/voice/clone', { method: 'POST', body: form })
+      const ct = res.headers.get('Content-Type') ?? ''
+      if (!res.ok || !ct.startsWith('audio/')) {
+        const body = await res.text()
+        throw new Error(`HTTP ${res.status}: ${body.slice(0, 240)}`)
+      }
+      const blob = await res.blob()
+      const dispo = res.headers.get('Content-Disposition') ?? ''
+      const filenameMatch = /filename="?([^";]+)"?/.exec(dispo)
+      if (filenameMatch?.[1]) setCloneFilename(filenameMatch[1])
+      setCloneURL(URL.createObjectURL(blob))
+    } catch (e: unknown) {
+      setCloneError(String(e))
+    } finally {
+      setCloneBusy(false)
+    }
+  }
 
   function refreshStoredCredentials() {
     const list = loadStoredCredentials()
@@ -840,6 +1094,56 @@ function SignPage() {
         ]}
       />
       <AudioRecorder label="Audio to sign (live)" onReady={setRecordedAudio} />
+      {recordedAudio ? (
+        <div className="mb-3 border border-rose-900 bg-rose-950/40 p-3 text-xs text-rose-100">
+          <div className="mb-1 font-semibold uppercase tracking-wide text-rose-200">Clone this recording with Cartesia</div>
+          <div className="mb-2 text-rose-200/80">Send the live recording you just captured to Cartesia, get back a synthesized clone of your own voice saying whatever you want, and download it. Then use that file on the Verify page (with the media.sig.json from Sign) to demonstrate the layered defense rejecting a real clone of your own voice.</div>
+          <label className="grid gap-1">
+            <span className="text-rose-200/80">Utterance for the clone to say</span>
+            <textarea
+              value={cloneUtterance}
+              onChange={(e) => setCloneUtterance(e.currentTarget.value)}
+              rows={2}
+              className="border border-rose-900 bg-zinc-950 px-3 py-2 font-mono text-[12px] text-rose-100 outline-none focus:border-rose-600"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={cloneCurrentRecording}
+            disabled={cloneBusy}
+            className="mt-2 w-full border border-rose-700 bg-rose-950 px-3 py-2 text-sm font-semibold text-rose-100 hover:bg-rose-900 disabled:opacity-40"
+          >
+            {cloneBusy ? 'Cloning via Cartesia…' : 'Clone my recording with Cartesia'}
+          </button>
+          {cloneError ? <div className="mt-2 border border-rose-800 bg-rose-950 p-2 text-rose-200">{cloneError}</div> : null}
+          {cloneURL ? (
+            <div className="mt-3 space-y-2 border border-emerald-800 bg-emerald-950/40 p-3 text-emerald-100">
+              <div className="text-xs font-semibold uppercase tracking-wide text-emerald-200">Clone ready</div>
+              <audio controls src={cloneURL} className="w-full" />
+              <div className="flex flex-wrap gap-2 text-xs">
+                <a
+                  href={cloneURL}
+                  download={cloneFilename}
+                  className="inline-block border border-emerald-700 bg-emerald-950 px-3 py-2 text-emerald-100 hover:bg-emerald-900"
+                >
+                  Download {cloneFilename}
+                </a>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const blob = await fetch(cloneURL).then((r) => r.blob())
+                    setAudioFile(new File([blob], cloneFilename, { type: 'audio/wav' }))
+                    setRecordedAudio(null)
+                  }}
+                  className="inline-block border border-rose-700 bg-rose-950 px-3 py-2 text-rose-100 hover:bg-rose-900"
+                >
+                  Use this clone as the audio to sign
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       <div className="mb-3 border border-zinc-800 bg-zinc-900 p-3 text-xs text-zinc-300">
         <div className="mb-1 font-semibold uppercase tracking-wide text-zinc-200">Demo fixtures</div>
         <div className="mb-2 text-zinc-400">Load a controlled audio fixture to demonstrate the layered defenses without leaving the UI. Cartesia clones were generated offline with consent; the UI never calls a cloning provider.</div>
@@ -1223,18 +1527,31 @@ function PhonePanel({ id }: { id: string }) {
   const storageKey = `mm.identity.${id}`
 
   useEffect(() => {
-    const raw = window.localStorage.getItem(storageKey)
-    if (!raw) return
-    try {
-      const parsed = flattenCredential(JSON.parse(raw))
-      if (parsed && parsed.id === id) {
-        setIdentity(parsed)
-        setStatus('connecting')
-      } else {
+    // Prefer the per-id legacy slot if present, otherwise reach into the
+    // shared post-enroll cache (mm.credentials.v1) and pick the matching id.
+    // This means the user does NOT have to upload the credential file again
+    // on the Approval Device after enrolling — we already have it.
+    const legacy = window.localStorage.getItem(storageKey)
+    if (legacy) {
+      try {
+        const parsed = flattenCredential(JSON.parse(legacy))
+        if (parsed && parsed.id === id) {
+          setIdentity(parsed)
+          setStatus('connecting')
+          return
+        }
+        window.localStorage.removeItem(storageKey)
+      } catch {
         window.localStorage.removeItem(storageKey)
       }
-    } catch {
-      window.localStorage.removeItem(storageKey)
+    }
+    const stored = loadStoredCredentials().find((c) => c.id === id)
+    if (stored) {
+      const parsed = flattenCredential(stored.bundle)
+      if (parsed) {
+        setIdentity(parsed)
+        setStatus('connecting (using cached credential)')
+      }
     }
   }, [id, storageKey])
 
