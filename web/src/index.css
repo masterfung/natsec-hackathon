@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+.soft-shell .border {
+  border-radius: 8px;
+}
+
+.soft-shell button,
+.soft-shell input,
+.soft-shell pre {
+  border-radius: 8px;
+}
+
+.soft-shell section {
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.18);
+}

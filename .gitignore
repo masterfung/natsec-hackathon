@@ -1,0 +1,50 @@
+# Secrets
+.env
+.env.local
+.env.*.local
+
+# Mac
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+logs/
+
+# Python
+__pycache__/
+*.pyc
+
+# Node / Bun
+node_modules/
+.bun/
+dist/
+build/
+.next/
+.turbo/
+.vite/
+*.tsbuildinfo
+
+# Go
+backend/backend
+backend/main
+backend/coverage.out
+backend/dist/
+vendor/
+
+# Generated SDKs
+ontology/sdk/
+
+# Local fixtures (large audio/video)
+fixtures/local/
+*.wav.local
+*.mp3.local
+
+# Local enrollment store + server signing key (gitignored — secrets)
+data/
+.secrets/
+*.key

@@ -1,0 +1,12 @@
+file,source,label,duration_s,embed_cosine_vs_real_01,citadel_action,citadel_risk,citadel_deepfake_risk,citadel_injection_risk,citadel_processing_ms,elevenlabs_classifier_ai_score,notes
+fixtures/user/clone_cartesia_01.wav,cartesia,synthetic,18.140,0.804868,ALLOW,39,0,0,1029,,
+fixtures/user/clone_cartesia_02.wav,cartesia,synthetic,17.072,0.777119,ALLOW,39,0,100,1040,,
+fixtures/user/clone_cartesia_03.wav,cartesia,synthetic,14.797,0.827843,BLOCK,95,0,0,1020,,
+fixtures/user/real_01.wav,real,real,31.337,1.000000,WARN,65,0,0,1581,,
+fixtures/user/real_02.wav,real,real,20.329,0.872901,WARN,65,0,100,1168,,
+fixtures/user/real_03.wav,real,real,14.441,0.905535,WARN,65,0,0,979,,
+fixtures/user/real_04.wav,real,real,12.991,0.831734,BLOCK,91,0,0,320,,
+fixtures/user/real_05.wav,real,real,22.719,0.558101,WARN,65,0,100,957,,
+fixtures/user/real_06.wav,real,real,18.281,0.699189,ALLOW,39,0,0,910,,
+fixtures/user/real_07.wav,real,real,26.132,0.760848,WARN,65,0,0,1107,,
+fixtures/user/real_08.wav,real,real,29.887,0.781890,ALLOW,39,51,100,12139,,

@@ -1,0 +1,6 @@
+*
+!.gitignore
+!fixture_manifest.json
+!clone_manifest.json
+!real_*.wav
+!clone_cartesia_*.wav

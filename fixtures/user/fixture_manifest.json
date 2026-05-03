@@ -1,0 +1,54 @@
+{
+  "created_at": "2026-05-03T04:31:00Z",
+  "notes": "Private local voice fixtures. real_01 is the enrollment/clone anchor. real_08 is the bilingual/accent/weirdness holdout.",
+  "files": [
+    {
+      "fixture": "real_01.wav",
+      "source": ".context/attachments/Hampshire St 22.m4a",
+      "duration_s": 31.38,
+      "role": "enrollment_anchor"
+    },
+    {
+      "fixture": "real_02.wav",
+      "source": ".context/attachments/Hampshire St 20.m4a",
+      "duration_s": 20.37,
+      "role": "real_holdout"
+    },
+    {
+      "fixture": "real_03.wav",
+      "source": ".context/attachments/Hampshire St 21.m4a",
+      "duration_s": 14.49,
+      "role": "real_holdout"
+    },
+    {
+      "fixture": "real_04.wav",
+      "source": ".context/attachments/Hampshire St 23.m4a",
+      "duration_s": 13.03,
+      "role": "real_holdout"
+    },
+    {
+      "fixture": "real_05.wav",
+      "source": ".context/attachments/Hampshire St 24.m4a",
+      "duration_s": 22.76,
+      "role": "real_holdout"
+    },
+    {
+      "fixture": "real_06.wav",
+      "source": ".context/attachments/Hampshire St 25.m4a",
+      "duration_s": 18.33,
+      "role": "real_holdout"
+    },
+    {
+      "fixture": "real_07.wav",
+      "source": ".context/attachments/Hampshire St 26.m4a",
+      "duration_s": 26.18,
+      "role": "real_holdout"
+    },
+    {
+      "fixture": "real_08.wav",
+      "source": ".context/attachments/Hampshire St 27.m4a",
+      "duration_s": 29.93,
+      "role": "bilingual_accent_stress_holdout"
+    }
+  ]
+}

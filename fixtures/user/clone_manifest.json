@@ -1,0 +1,126 @@
+{
+  "source": "fixtures/user/real_01.wav",
+  "created_at": "2026-05-03T05:07:03Z",
+  "outputs": [
+    {
+      "provider": "cartesia",
+      "path": "fixtures/user/clone_cartesia_01.wav",
+      "voice_id": "a0197960-5176-4852-ade8-6d34541c7bde"
+    },
+    {
+      "provider": "cartesia",
+      "path": "fixtures/user/clone_cartesia_02.wav",
+      "voice_id": "a0197960-5176-4852-ade8-6d34541c7bde"
+    },
+    {
+      "provider": "cartesia",
+      "path": "fixtures/user/clone_cartesia_03.wav",
+      "voice_id": "a0197960-5176-4852-ade8-6d34541c7bde"
+    },
+    {
+      "provider": "cartesia",
+      "path": "fixtures/user/clone_cartesia_04.wav",
+      "voice_id": "a0197960-5176-4852-ade8-6d34541c7bde"
+    },
+    {
+      "provider": "cartesia",
+      "path": "fixtures/user/clone_cartesia_05.wav",
+      "voice_id": "a0197960-5176-4852-ade8-6d34541c7bde"
+    },
+    {
+      "provider": "cartesia",
+      "path": "fixtures/user/clone_cartesia_06.wav",
+      "voice_id": "a0197960-5176-4852-ade8-6d34541c7bde"
+    },
+    {
+      "provider": "cartesia",
+      "path": "fixtures/user/clone_cartesia_07.wav",
+      "voice_id": "a0197960-5176-4852-ade8-6d34541c7bde"
+    },
+    {
+      "provider": "cartesia",
+      "path": "fixtures/user/clone_cartesia_08.wav",
+      "voice_id": "a0197960-5176-4852-ade8-6d34541c7bde"
+    },
+    {
+      "provider": "cartesia",
+      "path": "fixtures/user/clone_cartesia_09.wav",
+      "voice_id": "a0197960-5176-4852-ade8-6d34541c7bde"
+    },
+    {
+      "provider": "cartesia",
+      "path": "fixtures/user/clone_cartesia_10.wav",
+      "voice_id": "a0197960-5176-4852-ade8-6d34541c7bde"
+    },
+    {
+      "provider": "cartesia",
+      "path": "fixtures/user/clone_cartesia_11.wav",
+      "voice_id": "a0197960-5176-4852-ade8-6d34541c7bde"
+    },
+    {
+      "provider": "cartesia",
+      "path": "fixtures/user/clone_cartesia_12.wav",
+      "voice_id": "a0197960-5176-4852-ade8-6d34541c7bde"
+    },
+    {
+      "provider": "cartesia",
+      "path": "fixtures/user/clone_cartesia_13.wav",
+      "voice_id": "a0197960-5176-4852-ade8-6d34541c7bde"
+    },
+    {
+      "provider": "cartesia",
+      "path": "fixtures/user/clone_cartesia_14.wav",
+      "voice_id": "a0197960-5176-4852-ade8-6d34541c7bde"
+    },
+    {
+      "provider": "cartesia",
+      "path": "fixtures/user/clone_cartesia_15.wav",
+      "voice_id": "a0197960-5176-4852-ade8-6d34541c7bde"
+    },
+    {
+      "provider": "cartesia",
+      "path": "fixtures/user/clone_cartesia_16.wav",
+      "voice_id": "a0197960-5176-4852-ade8-6d34541c7bde"
+    },
+    {
+      "provider": "cartesia",
+      "path": "fixtures/user/clone_cartesia_17.wav",
+      "voice_id": "a0197960-5176-4852-ade8-6d34541c7bde"
+    },
+    {
+      "provider": "cartesia",
+      "path": "fixtures/user/clone_cartesia_18.wav",
+      "voice_id": "a0197960-5176-4852-ade8-6d34541c7bde"
+    },
+    {
+      "provider": "cartesia",
+      "path": "fixtures/user/clone_cartesia_19.wav",
+      "voice_id": "a0197960-5176-4852-ade8-6d34541c7bde"
+    },
+    {
+      "provider": "cartesia",
+      "path": "fixtures/user/clone_cartesia_20.wav",
+      "voice_id": "a0197960-5176-4852-ade8-6d34541c7bde"
+    },
+    {
+      "provider": "cartesia",
+      "path": "fixtures/user/clone_cartesia_21.wav",
+      "voice_id": "a0197960-5176-4852-ade8-6d34541c7bde"
+    },
+    {
+      "provider": "cartesia",
+      "path": "fixtures/user/clone_cartesia_22.wav",
+      "voice_id": "a0197960-5176-4852-ade8-6d34541c7bde"
+    },
+    {
+      "provider": "cartesia",
+      "path": "fixtures/user/clone_cartesia_23.wav",
+      "voice_id": "a0197960-5176-4852-ade8-6d34541c7bde"
+    },
+    {
+      "provider": "cartesia",
+      "path": "fixtures/user/clone_cartesia_24.wav",
+      "voice_id": "a0197960-5176-4852-ade8-6d34541c7bde"
+    }
+  ]
+}

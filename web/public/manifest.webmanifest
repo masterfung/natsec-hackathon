@@ -1,0 +1,8 @@
+{
+  "name": "Mighty Morphing",
+  "short_name": "Morphing",
+  "start_url": "/phone/user-self",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#064e3b"
+}
